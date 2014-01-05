@@ -10,4 +10,5 @@ import java.lang.annotation.Target;
 public @interface Arg {
     String name() default "";
     String description() default "";
+    String shortcut() default "";
 }

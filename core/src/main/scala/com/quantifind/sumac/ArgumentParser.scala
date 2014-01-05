@@ -6,8 +6,13 @@ import collection.mutable.LinkedHashMap
 import collection._
 
 class ArgumentParser[T <: ArgAssignable] (val argHolders: Seq[T]) {
-  lazy val nameToHolder:Map[String,T] = (LinkedHashMap.empty ++ argHolders.map(a => a.getName -> a)).withDefault { arg =>
+  val argsWithShortcuts = argHolders.filter(_.getShortcut.isDefined)
+  lazy val nameToHolder:Map[String,T] = {
+    val out = (LinkedHashMap.empty ++ argHolders.map(a => a.getName -> a)
+      ++argsWithShortcuts.map(a => a.getShortcut.get -> a)).withDefault { arg =>
     throw new ArgException("unknown option %s\n%s".format(arg, helpMessage))
+    }
+    out
   }
 
   def parse(args: Array[String]): Map[T, ValueHolder[_]] = {
@@ -34,7 +39,7 @@ class ArgumentParser[T <: ArgAssignable] (val argHolders: Seq[T]) {
   def helpMessage: String = {
     val msg = new StringBuilder
     msg.append("usage: \n")
-    nameToHolder.foreach { case (k, v) =>
+    nameToHolder.dropRight(argsWithShortcuts.size).foreach { case (k, v) =>
       msg.append(v.toString() + "\n")
     }
     msg.toString
@@ -55,6 +60,9 @@ object ArgumentParser {
         case "--help" :: _ =>
           acc("help") = null
           acc
+        case arg :: value :: tail if (arg(0)=='-' && arg(1) !='-') =>
+          acc(arg) = value
+          parse(tail, acc)
         case arg :: _ if (!arg.startsWith("--")) =>
           throw new ArgException("expecting argument name beginning with \"--\", instead got %s".format(arg))
         case name :: value :: tail =>
@@ -78,8 +86,15 @@ trait ArgAssignable {
   def getCurrentValue: AnyRef
   def getParser: Parser[_]
   def setValue(value: Any)
+  def getShortcut: Option[String]
   override def toString() = {
-    var t = "--" + getName + "\t" + getType
+    val lengths = 25;
+    var t = "--" + getName
+    while (t.length < 25) t += " "
+    t += getShortcut.map(x => s"($x)").getOrElse("")
+    while (t.length < 34) t += " "
+    t += (getType.toString().split("\\.").last)
+    while (t.length < 46) t += " "
     if (getDescription != getName)
       t += "\t" + getDescription
     t += "\t" + getCurrentValue
@@ -99,6 +114,11 @@ class FieldArgAssignable(val prefix: String, val field: Field, val obj: Object, 
     }
   }
 
+  def getShortcut: Option[String] = {
+    val opt1 = annotationOpt.map(_.shortcut)
+    opt1.collect{case x if (x!="")=> x}.map(x => s"${prefix}-$x")
+  }
+  
   def getDescription = {
     val d = annotationOpt.map(_.description).getOrElse(field.getName)
     if (d == "") getName else d

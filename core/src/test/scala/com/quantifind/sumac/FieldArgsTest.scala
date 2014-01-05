@@ -204,15 +204,18 @@ class FieldArgsTest extends FunSuite with ShouldMatchers {
           assert(false, "use name from annotation instead of variable name")
         case "wakka" =>
           f.getDescription should be ("wakka")
+          f.getShortcut should be (None)
+        case "zzz" =>
+          f.getShortcut should be (Some("-z"))
       }
     }
 
-    c.parse(Array("--foo", "hi", "--ooga", "17", "--y", "181", "--wakka", "1.81"))
+    c.parse(Array("--foo", "hi", "--ooga", "17", "--y", "181", "--wakka", "1.81", "-z", "5.35"))
     c.foo should be ("hi")
     c.x should be (17)
     c.y should be (181)
     c.z should be (1.81)
-
+    c.zzz should be (5.35)
     evaluating {c.parse(Array("--x", "17"))} should produce [ArgException]
     evaluating {c.parse(Array("--z", "1"))} should produce [ArgException]
   }
@@ -376,6 +379,8 @@ class ClassWithSomeAnnotations {
   var y: Int = _
   @Arg(name="wakka")
   var z: Double = _
+  @Arg(shortcut="z")
+  var zzz: Double = _
 }
 
 case class CustomType(val name: String, val x: Int)
