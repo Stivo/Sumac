@@ -251,6 +251,14 @@ abstract class CollectionParser[T] extends CompoundParser[T] {
       build(sub: _*)
     } else empty
   }
+  
+ override def valueAsString(currentValue: AnyRef): String = {
+   if (currentValue == null)
+     Parser.nullString
+   else
+     currentValue.asInstanceOf[Iterable[Any]].mkString(",")
+  }
+
 }
 
 object ListParser extends CollectionParser[List[_]] {
