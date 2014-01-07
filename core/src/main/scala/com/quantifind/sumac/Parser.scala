@@ -125,6 +125,14 @@ object FileParser extends SimpleParser[File] {
     val fullPath = if (s.startsWith("~")) System.getProperty("user.home")+s.drop(1) else s
     new File(fullPath)
   }
+  
+  override def valueAsString(currentValue: AnyRef): String = {
+    if (currentValue == null)
+      Parser.nullString
+    else
+      currentValue.asInstanceOf[File].getAbsolutePath
+  }
+
 }
 
 object DateParser extends SimpleParser[Date] {
